@@ -4,7 +4,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+import pprint
+import requests
+import json
 from datetime import date
+from newsapi import NewsApiClient
+from wordcloud import WordCloud
 
 subprocess.call(['sh', './shells/get_data.sh'])
 
@@ -67,3 +72,32 @@ font=dict(
 
 sum_fig.write_image("output/equipment_losses_pie.png")
 subprocess.call(['sh', './shells/remove_data.sh'])
+
+with open('secrets.json', 'r') as f:
+    json_data = json.load(f)
+
+API_key = json_data['API_Key']
+url = 'https://newsapi.org/v2/everything?'
+parameters = {
+    'q': 'ukraine war',
+    'pageSize': 20,
+    'apiKey': API_key
+}
+
+response = requests.get(url, params=parameters)
+response_json = response.json()
+
+text_file = open("output/latest_headlines.txt", "w")
+combined_headlines = ''
+
+for article in response_json['articles']:
+    text_file.write(article['title'] + "\n")
+    combined_headlines += article['title'] + ' '
+
+text_file.close()
+wordcloud = WordCloud(max_font_size=40).generate(combined_headlines)
+
+plt.figure()
+plt.imshow(wordcloud, interpolation="bilinear")
+plt.axis("off")
+plt.savefig('output/ukraine_word_cloud.png', dpi=2000)
